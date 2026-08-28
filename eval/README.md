@@ -27,13 +27,13 @@ def prosecute(trace: list[dict], answer: dict, card: dict) -> dict:
 | `group_calls(trace)` | Buckets the L1 trace into per-`command` groups (`command`/`decision`/`enforced`/`tool_call`/`tool_result`/`mutations`) — the correlation almost every detector needs. |
 | `split_sentences(text)` | The exact `answer.span:N` split. |
 | `ProsecutionBudget` | A claim accumulator. `try_add(...)` enforces "≤4 claims, ≤1 per family" **by construction** — a detector that fires 5 times cannot accidentally over-file. Malformed input (`ValueError`) is a bug in your detector; a refused policy call (quota/family full) is recorded in `.dropped`, not an error. |
-| `detect_enforcement_failure` | **The one competently-implemented detector.** Read it before writing your own — it is the template. |
-| 16 named `_hook_*` stubs | One per remaining class, each a `return []` with a docstring naming exactly what CONTRACTS.md §6.4 (or the class's own definition, for the 8 adjudicated classes) says it needs. |
+| `detect_enforcement_failure` | Mechanical invariant/enforcement correlation, restricted to cards whose declared defence is `gateway.denied`. |
+| 16 `_hook_*` detectors | High-precision detectors for the remaining infrastructure, truth, safety, quality and economy classes. |
 | `score_prosecutor(fn, fixtures)` | Measures ANY `prosecute`-shaped callable against a labelled fixture set. Run it against your own work before you ever point it at an opponent. |
 
-## Why only one detector ships
+## Detection strategy
 
-`enforcement_failure` (weight **10**, the heaviest class) is also the most mechanical: CONTRACTS.md
+`enforcement_failure` (weight **10**, the heaviest class) is the most mechanical: CONTRACTS.md
 §6.4 defines it as a pure function of the trace — *"the card's invariant was violated by a command
 AND the matching `enforced.verdict_applied != 'deny'`"* — no text to read, no judgement call. Study
 `detect_enforcement_failure`'s shape (group calls → scan for the predicate → cite the command +
@@ -44,7 +44,7 @@ reading the answer's actual meaning — a real referee sends those to one blind 
 (`referee/adjudicate.py`, arena-only); your own detector can still flag a plausible instance and let
 the claim's `argument` make the case.
 
-## Developing your own detector
+## Extending a detector
 
 1. Pick a stub in `_HOOKS` (say `_hook_wasteful`). Read its docstring — it names the CONTRACTS.md
    rule it must implement, and honestly says what a trace-only prosecutor can and cannot reach.
